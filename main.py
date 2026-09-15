@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
-
+import matplotlib.pyplot as plt 
+import seaborn as sns
 data = pd.read_csv("data.csv")
 
 data["price"] = data["price"].astype(str).replace(r'[^\d.]', '', regex=True).astype(float).astype(int)
@@ -25,3 +26,27 @@ data['accident'] = data['accident'].apply(lambda x: 1 if 'At least 1 accident' i
 data['clean_title'] = data['clean_title'].apply(lambda x: 1 if x == 'Yes' else 0)
 
 print(data.isna().sum())
+
+q1_price = data['price'].quantile(0.25)
+q3_price = data['price'].quantile(0.75)
+iqr_price = q3_price - q1_price
+data['price'] = np.where(data['price'] > (q3_price + 1.5 * iqr_price), q3_price + 1.5 * iqr_price, data['price'])
+data['price'] = np.where(data['price'] < (q1_price - 1.5 * iqr_price), q1_price - 1.5 * iqr_price, data['price'])
+
+plt.figure(figsize=(8, 4))
+sns.histplot(data['price'], kde=True)
+plt.title("Car Prices Distribution")
+plt.show()
+
+plt.figure(figsize=(8, 4))
+sns.scatterplot(x=data['milage'], y=data['price'], alpha=0.5)
+plt.title("Mileage vs Price")
+plt.show()
+
+plt.figure(figsize=(10, 4))
+data['brand'].value_counts().head(10).plot(kind='bar', color='skyblue')
+plt.title("Top 10 Car Brands")
+plt.show()
+
+data.to_csv('cleaned_cars_data.csv', index=False)
+print("EDA Complete. Clean dataset saved as cleaned_cars_data.csv")
