@@ -37,7 +37,10 @@ Every time the script runs, it spins up `matplotlib` and `seaborn` to output thr
 * A scatter plot comparing Mileage vs Price.
 * A bar chart showing the Top 10 Car Brands in the dataset.
 
----
+#### 6. Generated EDA Charts:
+![Car Prices Distribution](images/price_distribution.png)
+![Mileage vs Price](images/mileage_vs_price.png)
+![Top 10 Car Brands](images/top_10_brands.png)
 
 ## Project Structure
 
@@ -45,6 +48,7 @@ Every time the script runs, it spins up `matplotlib` and `seaborn` to output thr
 * `data.csv` - The raw, unedited Kaggle dataset.
 * `cleaned_cars_data.csv` - The final, polished output file.
 * `requirements.txt` - Python libraries needed to run the project.
+* `images/` - Directory containing the automatically generated EDA plots.
 
 ---
 
