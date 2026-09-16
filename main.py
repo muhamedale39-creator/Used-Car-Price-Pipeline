@@ -58,7 +58,7 @@ if not os.path.exists('images'):
     os.makedirs('images')
 
 
-plt.figure(figsize=(8, 4))
+plt.figure(figsize=(8, 4)) 
 sns.histplot(data['price'], kde=True)
 plt.title("Car Prices Distribution")
 plt.savefig("images/price_distribution.png") 
@@ -77,3 +77,9 @@ data['brand'].value_counts().head(10).plot(kind='bar', color='skyblue')
 plt.title("Top 10 Car Brands")
 plt.savefig("images/top_10_brands.png") 
 plt.close() 
+
+
+print(data["brand"].unique())
+
+
+print(data["brand"].unique())
