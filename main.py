@@ -78,8 +78,3 @@ plt.title("Top 10 Car Brands")
 plt.savefig("images/top_10_brands.png") 
 plt.close() 
 
-
-print(data["brand"].unique())
-
-
-print(data["brand"].unique())
