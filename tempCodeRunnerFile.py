@@ -40,7 +40,7 @@ best_model_R = grid.best_estimator_
 
 predictions = best_model_R.predict(X_test_processed)
 
-model_xgb = XGBRegressor(random_state=1)
+model_xgb = XGBRegressor(random_state=42)
 
 param_grid_x = {
     'n_estimators' : [150,200,300,],
@@ -60,7 +60,7 @@ vote = VotingRegressor(estimators=[('Random' , best_model_R) , ('XGBoost' , best
 vote.fit(X_train_processed,y_train)
 predictions_ensemble = vote.predict(X_test_processed)
 
-print("\n Ensemble Performance Of the Model")
+print("\n=== Combined Ensemble Performance ===")
 mae_ens = mean_absolute_error(y_test, predictions_ensemble)
 r2_ens = r2_score(y_test, predictions_ensemble)
 rmse_ens = np.sqrt(mean_squared_error(y_test, predictions_ensemble))
