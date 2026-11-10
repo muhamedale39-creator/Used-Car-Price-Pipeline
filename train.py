@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd 
+import joblib
 from sklearn.preprocessing import TargetEncoder
 from sklearn.model_selection import train_test_split , GridSearchCV  ,StratifiedKFold , KFold
 from sklearn.ensemble import RandomForestRegressor ,VotingRegressor
@@ -69,3 +70,8 @@ print(f" R² Accuracy Score             : {r2_ens:.4f} ({r2_ens*100:.1f}% of dat
 print(f" Mean Absolute Error (MAE)     : ${mae_ens:.2f}")
 print(f" Root Mean Squared Error (RMSE): ${rmse_ens:.2f}")
 
+artifacts = {
+    "transformer": transformer,
+    "model": vote
+}
+joblib.dump(artifacts, "car_artifacts.joblib")
