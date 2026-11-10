@@ -7,7 +7,7 @@ st.set_page_config(
     layout="centered"
 )
 
-API_URL = "https://car-backend-url.onrender.com/predict"
+API_URL = "https://used-car-price-pipeline.onrender.com"
 
 st.title("🚗 Used Car Price Prediction System")
 st.markdown("Estimate the market price of a used car based on its specifications, mileage, and features.")
