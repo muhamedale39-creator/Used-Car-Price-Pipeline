@@ -8,7 +8,7 @@ st.set_page_config(
     layout="centered"
 )
 
-API_URL = "https://used-car-price-pipeline.onrender.com"
+API_URL = "https://used-car-price-pipeline.onrender.com/predict"
 
 @st.cache_data
 def load_data():
