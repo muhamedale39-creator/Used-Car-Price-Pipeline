@@ -1,144 +1,142 @@
-# Used-Car Price Prediction Pipeline
+# 🚗 Used-Car Price Prediction Pipeline & API
 
-In this project I built a machine learning pipeline that takes a messy, raw used-car dataset from Kaggle, cleans it and engineers features with Pandas, explores it with charts, and predicts car prices with a tuned ensemble of Random Forest and XGBoost regressors.
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-005571?logo=fastapi)](https://fastapi.tiangolo.com/)
+[![XGBoost](https://img.shields.io/badge/XGBoost-Model-orange.svg)](https://xgboost.readthedocs.io/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-UI-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
+[![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 
-## Dataset
-The automotive data used to build this pipeline is sourced directly from the [Kaggle Used Car Price Prediction Dataset](https://www.kaggle.com/datasets/taeefnajib/used-car-price-prediction-dataset)
+An end-to-end machine learning system that takes a messy, raw used-car dataset from Kaggle, cleans and engineers features using Pandas, trains a tuned Voting Ensemble (Random Forest + XGBoost), exposes predictions via an asynchronous **FastAPI** backend containerized with **Docker**, and serves users through an interactive **Streamlit** web application featuring dynamic category dropdowns to eliminate input errors.
 
-I split the work into two standalone scripts instead of a notebook:
+---
 
-- `main.py` cleans the data, creates features, caps outliers, and generates EDA charts
-- `train.py` encodes the text columns, tunes two models with grid search, combines them into a voting ensemble, and prints the evaluation scores
+## 🚀 Live Demo & Endpoints
+
+- **Interactive Streamlit App:** [View Live App](https://used-car-price-pipeline-5x7ggj7gsmod2i8w8rwm5z.streamlit.app/)
+- **FastAPI Backend Documentation:** [API Swagger Docs](https://used-car-price-pipeline.onrender.com/docs)
+
+---
+
+## 📊 Dataset
+The automotive data used to build this pipeline is sourced directly from the [Kaggle Used Car Price Prediction Dataset](https://www.kaggle.com/datasets/taeefnajib/used-car-price-prediction-dataset).
+
+---
+
+## 🏗️ Project Architecture & Workflow
 
 ```
-data.csv ──► main.py ──► cleaned_cars_data.csv ──► train.py ──► R², MAE, RMSE
- (raw)     cleaning, features,      (model-ready)     target encoding, 80/20 split,
-           outlier capping, EDA                        GridSearchCV (RF + XGBoost),
-                │                                      VotingRegressor
+data.csv ──► main.py ──► cleaned_cars_data.csv ──► train.py ──► car_artifacts.joblib ──► FastAPI (main.py) ──► Streamlit (app.py)
+ (raw)     cleaning, features,      (model-ready)     target encoding, 80/20 split,        Saved Model Pipeline        Render Cloud          Streamlit Cloud
+           outlier capping, EDA                        GridSearchCV (RF + XGBoost),                                  
+                │                                      VotingRegressor                                             
                 └──► images/ (EDA charts)
 ```
 
-## How I Cleaned the Data (`main.py`)
+- `main.py` cleans the raw data, engineers new features, caps outliers, and generates EDA charts.
+- `train.py` encodes text columns via target encoding, tunes models with cross-validation grid search, builds a voting ensemble, and saves artifacts to `car_artifacts.joblib`.
+- `main.py` (FastAPI) runs the production backend API loading the saved model artifacts (`/predict` endpoint).
+- `app.py` runs the interactive Streamlit frontend UI with automated dataset-driven dropdown selectors.
 
-**1. Numeric parsing.** `price` and `milage` were stored as text with symbols and commas. I used a regex to strip everything except digits and decimal points, then converted them to numbers.
+---
 
-**2. Regex feature extraction from `engine`.** The raw `engine` column is free text (e.g. `300.0HP 3.0L V6 Cylinder Engine`). I used regex to pull out two numeric columns, `hp` (horsepower) and `liters` (engine size), then dropped the original column.
+## 🧹 Data Cleaning & Feature Engineering (`main.py`)
 
-**3. Three-tier missing value imputation for `hp` and `liters`.** Instead of a single global average, I fill missing values with a fallback chain built on `groupby`:
+1. **Numeric parsing:** Stripped symbols and commas from `price` and `milage` using regex and converted them to numbers.
+2. **Regex feature extraction from `engine`:** Extracted `hp` (horsepower) and `liters` (engine size) from free text descriptions.
+3. **Three-tier missing value imputation:** Filled missing values for `hp` and `liters` using a fallback chain (median of brand & model $\rightarrow$ median of brand $\rightarrow$ global median).
+4. **Categorical cleanup:** Standardized `fuel_type`, `accident`, and `clean_title` binary flags.
+5. **Brand and model name fixes:** Repaired truncated brand names (`Land` → `Land Rover`, `Aston` → `Aston Martin`, `Alfa` → `Alfa Romeo`) and stripped prefix residues.
+6. **New features:** Created `vehicle_age` (`2026 − model_year`) and `mileage_per_year`, dropping `model_year`.
+7. **Text normalization:** Lowercased, trimmed, and handled missing text fields.
+8. **Outlier capping:** Capped extreme `price` outliers using the IQR rule.
+9. **Exploratory charts:** Saved visual plots (`price_distribution.png`, `mileage_vs_price.png`, `top_10_brands.png`) into `images/`.
 
-1. Median of the same **brand and model**
-2. Median of the same **brand**
-3. **Global** median
+---
 
-**4. Categorical and binary cleanup.**
-- I treat `fuel_type` values outside a valid list (Gasoline, Hybrid, E85 Flex Fuel, Diesel, Plug-In Hybrid, Electric) as missing.
-- I turn `accident` into `1` if an accident was reported, otherwise `0`.
-- I turn `clean_title` into `1` for `Yes`, otherwise `0`.
-- I convert placeholder dash values to missing.
+## 🤖 Modeling & Training (`train.py`)
 
-**5. Brand and model name fixes.** I repaired truncated brand names (`Land` → `Land Rover`, `Aston` → `Aston Martin`, `Alfa` → `Alfa Romeo`) and removed the leftover `Rover ` / `Martin ` prefixes from model names.
+1. **Split:** 80% train / 20% test split.
+2. **Target Encoding:** Encoded categorical features (`brand`, `model`, `fuel_type`, `transmission`, `ext_col`, `int_col`) using `TargetEncoder` inside a `ColumnTransformer` fitted exclusively on the training set to prevent data leakage.
+3. **Random Forest & XGBoost Tuning:** Tuned individual regressors using 5-fold cross-validation and GridSearchCV optimizing for $R^2$ score.
+4. **Voting Ensemble:** Combined the optimized Random Forest and XGBoost estimators into a `VotingRegressor`.
 
-**6. New features.** I created two features and then dropped `model_year`:
-- `vehicle_age` = 2026 − `model_year`
-- `mileage_per_year` = `milage` / (`vehicle_age` + 1)
-
-**7. Text normalization.** I lowercase and trim `brand`, `model`, `fuel_type`, `transmission`, `ext_col`, and `int_col`, and strip trailing periods. Any remaining missing values become the category `missing`.
-
-**8. Outlier capping.** I cap `price` with the IQR rule: values above Q3 + 1.5 × IQR are set to that upper limit, and values below Q1 − 1.5 × IQR are raised to the lower limit (never below 0).
-
-**9. Exploratory charts.** I save three plots to `images/`:
-
-| File | Chart |
-| --- | --- |
-| `price_distribution.png` | Distribution of car prices |
-| `mileage_vs_price.png` | Mileage vs price scatter plot |
-| `top_10_brands.png` | Ten most common brands |
-
-I write the cleaned dataset to `cleaned_cars_data.csv`.
-
-## How I Trained the Models (`train.py`)
-
-**1. Split.** I separate the cleaned data into features (everything except `price`) and the target (`price`), then split it **80% train / 20% test** with `random_state=1`.
-
-**2. Target encoding.** I convert the text columns `brand`, `model`, `fuel_type`, `transmission`, `ext_col`, and `int_col` to numbers with scikit-learn's `TargetEncoder` (continuous target) inside a `ColumnTransformer`. Each category is replaced by a smoothed average of the price for that category, and the remaining numeric columns pass through unchanged. I fit the encoder on the training set only, so no test-set information leaks into the features.
-
-**3. Random Forest with grid search.** I tune a `RandomForestRegressor` with `GridSearchCV`, using 5-fold cross-validation (shuffled, `random_state=1`) and R² as the scoring metric.
-
-| Parameter | Values searched |
-| --- | --- |
-| `n_estimators` | 100, 150, 200 |
-| `max_depth` | 5, 7, 10, 15 |
-
-**4. XGBoost with grid search.** I tune an `XGBRegressor` the same way (5-fold CV, R² scoring).
-
-| Parameter | Values searched |
-| --- | --- |
-| `n_estimators` | 150, 200, 300 |
-| `learning_rate` | 0.1, 0.4, 0.6 |
-| `max_depth` | 4, 6, 10, 15 |
-
-**5. Voting ensemble.** I combine the best Random Forest and the best XGBoost model from the searches in a `VotingRegressor`, which averages their predictions. I fit the ensemble on the training set and evaluate it on the held-out test set.
-
-### Evaluation Metrics
-
-`train.py` prints these scores for the ensemble:
+### Evaluation Metrics (Ensemble Performance)
 
 | Metric | Score |
 | --- | --- |
-| **R² score** | 0.9083 (90.8% of data variance explained)|
-| **MAE** | $5586.37 |
-| **RMSE** | $8605.27 |
+| **$R^2$ score** | 0.9083 (90.8% of data variance explained) |
+| **MAE** | \$5,586.37 |
+| **RMSE** | \$8,605.27 |
 
-## Project Structure
+---
 
-| Path | Description |
-| --- | --- |
-| `main.py` | Cleaning, feature engineering, outlier capping, EDA charts |
-| `train.py` | Target encoding, grid search, ensemble training, evaluation |
-| `data.csv` | Raw Kaggle dataset |
-| `cleaned_cars_data.csv` | Model-ready output of `main.py` |
-| `images/` | EDA charts generated by `main.py` |
-| `requirements.txt` | Python dependencies |
+## 📁 Project Structure
 
-## How to Run It Locally
-
-**1. Clone the repository**
-
-```bash
-git clone https://github.com/muhamedale39-creator/Used-Car-Price-Pipeline.git
-cd Used-Car-Price-Pipeline
+```text
+Used-Car-Price-Pipeline/
+├── Images/
+│   ├── price_distribution.png
+│   ├── mileage_vs_price.png
+│   └── top_10_brands.png
+├── main.py                # FastAPI Backend & /predict Endpoint
+├── train.py               # Model Training & Artifact Generation
+├── app.py                 # Streamlit Frontend with Dynamic Dropdowns
+├── car_artifacts.joblib   # Saved Transformer & Voting Ensemble Pipeline
+├── data.csv               # Raw Dataset
+├── cleaned_cars_data.csv  # Cleaned Dataset & Dropdown Source
+├── Dockerfile             # Container configuration for Render
+├── requirements.txt       # Project dependencies
+└── README.md
 ```
 
-**2. Install dependencies**
+---
+
+## ⚙️ How to Run It Locally
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/muhamedale39-creator/Used-Car-Price-Pipeline.git
+   cd Used-Car-Price-Pipeline
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Clean data & generate charts:**
+   ```bash
+   python main.py
+   ```
+
+4. **Train and save model artifacts:**
+   ```bash
+   python train.py
+   ```
+
+5. **Run the FastAPI Backend:**
+   ```bash
+   uvicorn main:app --reload --port 8000
+   ```
+
+6. **Run the Streamlit Frontend (in a separate terminal):**
+   ```bash
+   streamlit run app.py
+   ```
+
+---
+
+## 🐳 Docker Deployment
+
+To build and run the backend container locally:
 
 ```bash
-pip install -r requirements.txt
+docker build -t car-price-api .
+docker run -p 8000:8000 car-price-api
 ```
 
-`train.py` uses `TargetEncoder` and imports `root_mean_squared_error`, so it needs scikit-learn 1.4 or newer, plus the `xgboost` package.
+---
 
-**3. Clean the data and generate charts**
+## 🛠️ Tech Stack
 
-```bash
-python main.py
-```
-
-The charts open in pop-up windows first. Close each one to let the script continue and save the files to `images/`.
-
-**4. Train and evaluate the models**
-
-```bash
-python train.py
-```
-
-The grid searches fit 60 Random Forest models (12 combinations × 5 folds) and 180 XGBoost models (36 combinations × 5 folds), so this step can take a while.
-
-## Tech Stack
-
-Python, Pandas, NumPy, scikit-learn, XGBoost, Matplotlib, Seaborn
-
-## What I Plan to Improve
-
-- Print the tuned Random Forest and XGBoost scores and the best parameters found (`grid.best_params_`), so I can see what the ensemble adds. Right now I only print the ensemble's scores.
-- Save the fitted encoder and trained ensemble to disk (for example with `joblib`) so I can reuse them in a web app.
-- Fix the `fuel_type` fill in `main.py`. It uses `.mode()` (a Series) instead of `.mode()[0]`, so most missing fuel types end up as `missing` instead of the most common fuel type.
+Python, Pandas, NumPy, scikit-learn, XGBoost, Matplotlib, Seaborn, FastAPI, Streamlit, Docker, Git, GitHub
