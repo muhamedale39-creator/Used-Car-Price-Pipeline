@@ -2,6 +2,9 @@
 
 In this project I built a machine learning pipeline that takes a messy, raw used-car dataset from Kaggle, cleans it and engineers features with Pandas, explores it with charts, and predicts car prices with a tuned ensemble of Random Forest and XGBoost regressors.
 
+## Dataset
+The automotive data used to build this pipeline is sourced directly from the [Kaggle Used Car Price Prediction Dataset](https://www.kaggle.com/datasets/taeefnajib/used-car-price-prediction-dataset)
+
 I split the work into two standalone scripts instead of a notebook:
 
 - `main.py` cleans the data, creates features, caps outliers, and generates EDA charts
